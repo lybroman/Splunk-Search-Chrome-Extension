@@ -5,6 +5,7 @@
         html, body{
             height:auto !important;
             background:#F7F7F7 !important;
+            width:400px;
         }
         div.container{
             background:#F7F7F7 !important;
@@ -38,6 +39,7 @@
             height: 0;
         }
 
+        #comments::-webkit-scrollbar {display:none}
 
     </style>
     <link rel="stylesheet" type="text/css" href="../css/semantic.min.css">
@@ -45,38 +47,39 @@
 </head>
 <body>
 
-<div class="ui container clearfix" style="margin-top: 10px">
-    <div class="ui toggle checkbox" style="float:right">
-        <input type="checkbox" name="public" id="convert_color">
-        <label><i class="eye dropper icon"></i></label>
+<div>
+    <div class="ui container clearfix" style="margin-top: 10px">
+        <div class="ui toggle checkbox" style="float:right">
+            <input type="checkbox" name="public" id="convert_color">
+            <label><i class="eye dropper icon"></i></label>
+        </div>
     </div>
-</div>
-<div class="ui container">
-    <img class="ui small bordered circular image" src="/images/splunk-pony.png" style="width:200px; height:auto; margin: 0 auto;">
+    <div class="ui container">
+        <img class="ui small bordered circular image" src="../images/splunk-pony.png" style="width:160px; height:auto; margin: 0 auto;">
+    </div>
+
+    <div class="ui one column center aligned stackable divided grid segment">
+        <div class="column">
+            <!--div>
+                <p id = "status"></p>
+            </div>
+            <div>
+                <p id = "show_text"></p>
+            </div-->
+            <div>
+                <i class="microphone big icon" id="recorder"></i>
+            </div>
+            <div id="siric" style="height:40px; width:auto; margin:10px auto 0px auto;"></div>
+        </div>
+    </div>
 </div>
 
-<div class="ui one column center aligned stackable divided grid segment">
-    <div class="column">
-        <div>
-            <p id = "status"></p>
-        </div>
-        <div>
-            <p id = "show_text"></p>
-        </div>
-        <div class="column">
-            <div style="margin-top: 30px">
-                <i class="microphone big icon" id="recorder"></i>Talk to PONY
-            </div>
-        </div>
-        <div>
-            <div id="siric" style="margin:30px auto 0px auto;"></div>
-        </div>
-    </div>
-</div>
+<div id="comments" class="ui container" style="overflow:scroll; height:350px;"></div>
 
 <script src="../js/library/jquery.min.js"></script>
 <script src="../js/semantic/utils.js"></script>
 <script src="../js/popup/popup.js"></script>
+<script src="../js/popup/render_comments.js"></script>
 <script src="../js/library/semantic.min.js"></script>
 <script src="../js/library/SiriWave.js"></script>
 </body>

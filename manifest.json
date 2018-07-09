@@ -6,6 +6,8 @@
     "storage",
     "activeTab",
     "declarativeContent",
+    "identity",
+    "identity.email",
     "*://*/*"
   ],
   "background": {
@@ -36,7 +38,8 @@
       "matches": ["<all_urls>"],
       "js": [
         "libs/js/library/jquery.min.js",
-        "libs/js/semantic/utils.js"
+        "libs/js/semantic/utils.js",
+        "libs/js/popup/render_comments.js"
       ]
     }
   ],

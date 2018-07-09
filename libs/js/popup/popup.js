@@ -13,7 +13,7 @@ audio_recorder.onclick = function() {
 
         recognition.onstart = function () {
             started = true;
-            document.getElementById("status").innerHTML = "start";
+            //document.getElementById("status").innerHTML = "start";
             SW.start();
         };
 
@@ -24,7 +24,7 @@ audio_recorder.onclick = function() {
         };
 
         recognition.onend = function () {
-            document.getElementById("status").innerHTML = "end";
+            //document.getElementById("status").innerHTML = "end";
             started = false;
             SW.stop();
         };
@@ -40,15 +40,20 @@ audio_recorder.onclick = function() {
                     final_transcript +
                     "&display.page.search.mode=smart&dispatch.sample_ratio=1";
 
+                /*
                 chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
                     var tab = tabs[0];
                     chrome.tabs.update(tab.id, {url: newURL});
                 });
                 // chrome.tabs.create({ url: newURL });
+                */
 
                 // TODO
                 // interim_transcript -> update current SPL data structure
-                document.getElementById("show_text").innerHTML = final_transcript;
+                //document.getElementById("show_text").innerHTML = final_transcript;
+
+                // TODO: @lwei please porting this method call to correct position
+                update_comment(final_transcript, "just dummy comment...");
             }
 
         };
@@ -78,8 +83,8 @@ $(function() {
     });
 
     SW = new SiriWave({
-        width: 200,
-        height: 50,
+        width: 120,
+        height: 30,
         speed: 0.05,
         amplitude: 1,
         // style: "ios9",

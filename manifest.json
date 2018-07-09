@@ -8,7 +8,9 @@
     "declarativeContent",
     "identity",
     "identity.email",
-    "*://*/*"
+    "*://*/*",
+    "cookies",
+    "tabs"
   ],
   "background": {
     "scripts": [

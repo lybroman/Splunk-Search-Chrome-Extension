@@ -4,6 +4,31 @@ let started=false;
 let recognition;
 var SW;
 
+// Move this part to somewhere else later
+
+function get_key_words() {
+    urls = {
+        "indexes": "http://localhost:8000/en-US/splunkd/__raw/services/data/indexes?output_mode=json&count=-1",
+        "sourcetypes": "http://localhost:8000/en-US/splunkd/__raw/services/saved/sourcetypes?output_mode=json&count=-1"
+    }
+    result = {}
+    for (key in urls) {
+        $.getJSON({
+            url: urls[key],
+            success: function(data){
+                values = []
+                for (idx in data["entry"]) {
+                    values.push(data["entry"][idx]["name"])
+                }
+                result[key] = values;
+            },
+            async: false
+        })
+    }
+    return result;
+}
+
+
 audio_recorder.onclick = function() {
     if(!started) {
         recognition = new webkitSpeechRecognition();

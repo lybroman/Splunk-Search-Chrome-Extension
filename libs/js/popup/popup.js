@@ -2,6 +2,7 @@ let highlight_check_box = document.getElementById('convert_color');
 let audio_recorder = document.getElementById('recorder');
 let started=false;
 let recognition;
+var SW;
 
 audio_recorder.onclick = function() {
     if(!started) {
@@ -13,16 +14,19 @@ audio_recorder.onclick = function() {
         recognition.onstart = function () {
             started = true;
             document.getElementById("status").innerHTML = "start";
+            SW.start();
         };
 
         recognition.onerror = function (event) {
             alert(event.error)
             started = false;
+            SW.stop();
         };
 
         recognition.onend = function () {
             document.getElementById("status").innerHTML = "end";
             started = false;
+            SW.stop();
         };
 
         recognition.onresult = function (event) {
@@ -71,5 +75,16 @@ highlight_check_box.onclick  = function() {
 $(function() {
     chrome.storage.sync.get('convert_color', function (obj) {
         $("#convert_color").prop('checked', obj.convert_color)
+    });
+
+    SW = new SiriWave({
+        width: 200,
+        height: 50,
+        speed: 0.05,
+        amplitude: 1,
+        // style: "ios9",
+        container: document.getElementById('siric'),
+        autostart: false,
+        color: "#000"
     });
 });

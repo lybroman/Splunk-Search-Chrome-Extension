@@ -27,11 +27,10 @@ function color_conversion(convert_color=false) {
 
 }
 
-function processText(){
-    return ""
-}
-
 function render() {
+    /*
+        render syntax in Splunk ui
+     */
     chrome.storage.sync.get('convert_color', function (obj) {
         color_conversion(obj.convert_color);
     });

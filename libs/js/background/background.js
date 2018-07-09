@@ -6,7 +6,10 @@ chrome.runtime.onInstalled.addListener(function() {
         chrome.declarativeContent.onPageChanged.addRules([{
             conditions: [new chrome.declarativeContent.PageStateMatcher({
                 pageUrl: {hostEquals: 'localhost'},
-            })
+            }),
+                new chrome.declarativeContent.PageStateMatcher({
+                    pageUrl: {hostEquals: '127.0.0.1'},
+                })
             ],
             actions: [new chrome.declarativeContent.ShowPageAction()]
         }]);

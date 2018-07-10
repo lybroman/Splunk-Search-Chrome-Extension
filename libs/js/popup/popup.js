@@ -3,6 +3,7 @@ let audio_recorder = document.getElementById('recorder');
 let started=false;
 let bshow=false;
 let recognition;
+let b_highlight = false;
 var SW;
 
 // Move this part to somewhere else later
@@ -41,30 +42,34 @@ audio_recorder.onclick = function() {
             started = true;
             //document.getElementById("status").innerHTML = "start";
             SW.start();
+            set_aloha_status(true);
         };
 
         recognition.onerror = function (event) {
             alert(event.error)
             started = false;
             SW.stop();
-            started = true;
+            set_aloha_status(false);
+            //started = true;
             //document.getElementById("status").innerHTML = "start";
-            recognition.start();
+            //recognition.start();
         };
 
         recognition.onend = function () {
             //document.getElementById("status").innerHTML = "end";
             started = false;
             SW.stop();
-            started = true;
+            set_aloha_status(false);
+            //started = true;
             //document.getElementById("status").innerHTML = "start";
-            recognition.start();
+            //recognition.start();
         };
 
         recognition.onresult = function (event) {
             let final_transcript = '';
-            // since no continuous mode
+
             SW.stop();
+            set_aloha_status(false);
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 final_transcript += event.results[i][0].transcript;
             }
@@ -104,8 +109,21 @@ audio_recorder.onclick = function() {
 };
 
 highlight_check_box.onclick  = function() {
-    chrome.storage.sync.set({convert_color: $("#convert_color").prop('checked')}, function() {
+
+    chrome.storage.sync.set({convert_color: !b_highlight}, function() {
+        let icon_highlight = $('#convert_color');
+        if (icon_highlight.hasClass('off')) {
+            icon_highlight.removeClass('off');
+            icon_highlight.addClass('on');
+        }
+        else
+        {
+            icon_highlight.addClass('off');
+            icon_highlight.removeClass('on')
+        }
+        b_highlight = !b_highlight;
     });
+
 
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         var tab = tabs[0];
@@ -117,15 +135,20 @@ highlight_check_box.onclick  = function() {
 
 $(function() {
     chrome.storage.sync.get('convert_color', function (obj) {
-        $("#convert_color").prop('checked', obj.convert_color)
+        let icon_highlight = $('#convert_color');
+        if(obj.convert_color){
+            icon_highlight.removeClass('off');
+            icon_highlight.addClass('on');
+        }
+        b_highlight = obj.convert_color;
     });
 
     SW = new SiriWave({
-        width: 120,
-        height: 30,
+        width: 40,
+        height: 15,
         speed: 0.05,
         amplitude: 1,
-        // style: "ios9",
+        //style: "ios9",
         container: document.getElementById('siric'),
         autostart: false,
         color: "#000"

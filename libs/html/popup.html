@@ -23,11 +23,7 @@
         }
 
         #siric {
-            width: 400px;
-            height: 100px;
-            display: block;
-            margin: 0 auto;
-            margin-top: 100px;
+            float: right;
         }
 
         .clearfix:after {
@@ -41,46 +37,66 @@
 
         #comments::-webkit-scrollbar {display:none}
 
+        #convert_color {
+            cursor: pointer;
+        }
+
+        .custom_comment{
+            background-color:#F7F7F7;
+            border-radius:8px;
+            margin-bottom: 5px;
+            padding:4px 6px;
+            -webkit-box-shadow:0px 3px 3px #c8c8c8 ;
+        }
+
     </style>
     <link rel="stylesheet" type="text/css" href="../css/semantic.min.css">
     <link rel="stylesheet" type="text/css" href="../css/icon.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css" integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt" crossorigin="anonymous">
 </head>
 <body>
 
 <div>
-    <div class="ui container clearfix" style="margin-top: 10px">
-        <div class="ui toggle checkbox" style="float:right">
-            <input type="checkbox" name="public" id="convert_color">
-            <label><i class="eye dropper icon"></i></label>
+    <div class="ui card" style="width:100%">
+        <div class="content">
+            <span id="siric"></span>
+            <div class="header">ALOHA ></div>
+            <div class="description">
+                <img class="ui small bordered circular image" src="../images/splunk-pony.png" 
+                     style="width:160px; height:auto; margin: 0 auto; display: block;">
+            </div>
         </div>
-    </div>
-    <div class="ui container">
-        <img class="ui small bordered circular image" src="../images/splunk-pony.png" style="width:160px; height:auto; margin: 0 auto;">
-    </div>
-
-    <div class="ui one column center aligned stackable divided grid segment">
-        <div class="column">
-            <!--div>
-                <p id = "status"></p>
-            </div>
-            <div>
-                <p id = "show_text"></p>
-            </div-->
-            <div>
-                <i class="microphone big icon" id="recorder"></i>
-            </div>
-            <div id="siric" style="height:40px; width:auto; margin:10px auto 0px auto;"></div>
+        <div class="content">
+            <span class="left floated like">
+              <i class="toggle off icon" id="convert_color"></i>
+              Highlight
+            </span>
+            <span class="right floated star">
+                 <i id="recorder" class="microphone icon"></i>
+                 Voice Input
+            </span>
         </div>
     </div>
 </div>
-
-<div id="comments" class="ui container" style="overflow:scroll; height:0px;"></div>
-
+<div class="ui raised segment" id="comments_wrapper" style="margin: 0px;">
+    <h4 class="ui dividing header">
+        <i class="fas fa-user-ninja" id="aloha_icon" style="font-size: 24px; margin-right:10px; padding-top:5px"></i>
+        <!--i class="male icon" id="aloha_icon"></i-->
+        <div class="content">
+            Ninjas are toooo Busy...
+            <div class="sub header" id="aloha_status">Activate me with "Aloha" !</div>
+        </div>
+    </h4>
+    <div id="comments" style="overflow:scroll; height:250px; display: none;">
+    </div>
+</div>
 <script src="../js/library/jquery.min.js"></script>
+<script src="../js/semantic/utils.js"></script>
 <script src="../js/semantic/utils.js"></script>
 <script src="../js/popup/load_settings.js"></script>
 <script src="../js/popup/popup.js"></script>
-<script src="../js/popup/render_comments.js"></script>
+<script src="../js/library/render_comments.js"></script>
+<script src="../js/library/shuffle_letter.js"></script>
 <script src="../js/library/semantic.min.js"></script>
 <script src="../js/library/SiriWave.js"></script>
 </body>

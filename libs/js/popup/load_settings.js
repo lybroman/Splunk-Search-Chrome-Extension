@@ -1,5 +1,5 @@
 chrome.identity.getProfileUserInfo(function(userInfo) {
-    let user_info_url = userInfo.id;
+    let user_info_url = "http://picasaweb.google.com/data/entry/api/user/" +  userInfo.id + "?alt=json";
     if (user_info_url){
         let xmlHttp = new XMLHttpRequest();
         xmlHttp.open("GET", user_info_url, false);

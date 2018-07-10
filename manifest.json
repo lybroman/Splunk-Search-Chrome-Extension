@@ -14,7 +14,8 @@
   ],
   "background": {
     "scripts": [
-      "libs/js/background/background.js"
+      "libs/js/background/background.js",
+      "libs/js/popup/load_settings.js"
     ],
     "persistent": false
   },
@@ -42,8 +43,7 @@
       "js": [
         "libs/js/library/jquery.min.js",
         "libs/js/semantic/utils.js",
-        "libs/js/popup/render_comments.js",
-        "libs/js/popup/load_settings.js"
+        "libs/js/popup/render_comments.js"
       ]
     }
   ],

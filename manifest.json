@@ -21,27 +21,29 @@
   "page_action": {
     "default_popup": "libs/html/popup.html",
     "default_icon": {
-      "16": "images/get_started16.png",
-      "32": "images/get_started32.png",
-      "48": "images/get_started48.png",
-      "128": "images/get_started128.png"
+      "16": "images/splunk-pony.png",
+      "32": "images/splunk-pony.png",
+      "48": "images/splunk-pony.png",
+      "128": "images/splunk-pony.png"
     }
   },
   "icons": {
-    "16": "images/get_started16.png",
-    "32": "images/get_started32.png",
-    "48": "images/get_started48.png",
-    "128": "images/get_started128.png"
+    "16": "images/splunk-pony.png",
+    "32": "images/splunk-pony.png",
+    "48": "images/splunk-pony.png",
+    "128": "images/splunk-pony.png"
   },
   "options_page": "libs/html/options.html",
   "content_scripts": [
     {
       "all_frames": true,
       "matches": ["<all_urls>"],
+      "run_at": "document_start",
       "js": [
         "libs/js/library/jquery.min.js",
         "libs/js/semantic/utils.js",
-        "libs/js/popup/render_comments.js"
+        "libs/js/popup/render_comments.js",
+        "libs/js/popup/load_settings.js"
       ]
     }
   ],

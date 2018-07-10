@@ -32,6 +32,11 @@ const g_user_comment =
     '</div>' +
     '</div>';
 
+function show_comment_div(height="350px"){
+    const c_div = document.getElementById("comments");
+    c_div.style.height = height;
+    c_div.style.transition = "all 0.5s";
+}
 
 function update_comment(user_comment, pony_comment) {
 

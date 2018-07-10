@@ -1,6 +1,7 @@
 let highlight_check_box = document.getElementById('convert_color');
 let audio_recorder = document.getElementById('recorder');
 let started=false;
+let bshow=false;
 let recognition;
 var SW;
 
@@ -79,6 +80,10 @@ audio_recorder.onclick = function() {
 
                 // TODO: @lwei please porting this method call to correct position
                 update_comment(final_transcript, "just dummy comment...");
+                if (!bshow){
+                    show_comment_div();
+                    bshow = false;
+                }
             }
 
         };

@@ -311,15 +311,18 @@ Spl.prototype.extractField = function(statement) {
 };
 
 
-Spl.prototype.getStatementType = function(statement) {
+Spl.prototype.getStatementType = function(statement, b_shortcut=false) {
 
     // first word
-    let firstStatement = statement.trim().split(/\s+/)[0];
+    let firstStatement = !b_shortcut ? statement.trim().split(/\s+/)[0] : statement;
 
-    let statementTypeList = ['index', 'type', 'commit', 'rollback', 'where', 'search'];
+    let statementTypeList = !b_shortcut ? ['index', 'type', 'commit', 'rollback', 'where', 'search'] : ['aloha commit', 'aloha rollback'];
     let maxSim = - 1;
     let ans = "";
     for (let type of statementTypeList) {
+        if (soundex(type) === soundex(statement)){
+            return type;
+        }
         let sim = lcs(type, firstStatement);
         if (sim > maxSim) {
             maxSim = sim;
@@ -347,17 +350,26 @@ Spl.prototype.getValue = function(value) {
 
 Spl.prototype.addNewStatement = function(statement) {
 
-    if (statement == "aloha") {
+    let words = statement.split(' ');
+    let b_shortcut = false;
+
+    if (words.length > 1 && "aloha" === words[0]) {
+        b_shortcut = true;
+        this.statementFlag = true;
+    }
+    else if("aloha" === words[0]){
         this.statementFlag = true;
         return false;
     }
-
-    alert(this.getStatementType(statement));
-
+    else if(words.length == 1){
+        alert(statement + ' : ' + soundex(statement));
+    }
     if (this.statementFlag) {
         this.statementFlag = false;
         // add a new statement
-        if (this.getStatementType(statement) == "index") {
+        let predicted_statement = this.getStatementType(statement, b_shortcut);
+        alert("predicted:" + predicted_statement);
+        if (predicted_statement === "index") {
             // index
             let array = statement.trim().split(/\s+/);
             if (array.length > 1) {
@@ -368,7 +380,7 @@ Spl.prototype.addNewStatement = function(statement) {
                 document.getElementById("show_text").innerHTML = "please say a correct index";
                 return false;
             }
-        } else if (this.getStatementType(statement) == "type") {
+        } else if (predicted_statement === "type") {
             // source type
             let array = statement.trim().split(/\s+/);
             if (array.length > 1) {
@@ -379,7 +391,7 @@ Spl.prototype.addNewStatement = function(statement) {
                 document.getElementById("show_text").innerHTML = "please say a correct source type";
                 return false;
             }
-        } else if (this.getStatementType(statement) == "commit") {
+        } else if (predicted_statement.includes("commit")) {
             if (this.fieldsMap.size > 0) {
                 let newMap = new Map();
                 this.fieldsMap.forEach(function (field, fieldName) {
@@ -389,7 +401,7 @@ Spl.prototype.addNewStatement = function(statement) {
                 this.fieldsMap.clear();
             }
             return false;
-        } else if (this.getStatementType(statement) == "rollback") {
+        } else if (predicted_statement.includes("rollback")) {
             if (this.fieldsMap.size > 0) {
                 this.fieldsMap.clear();
             } else {
@@ -397,7 +409,7 @@ Spl.prototype.addNewStatement = function(statement) {
                     this.pipeline.pop();
                 }
             }
-        } else if (this.getStatementType(statement) == 'where') {
+        } else if (predicted_statement === 'where') {
             let strs = statement.trim().split(/\s+/);
             if (strs.length <= 1) {
                 return false;
@@ -557,8 +569,8 @@ audio_recorder.onclick = function() {
             final_transcript = final_transcript.trim().toLowerCase();
 
             // for test here
-            final_transcript = testArray[testIndex];
-            alert("final_transcript " + final_transcript);
+            //final_transcript = testArray[testIndex];
+            //alert("final_transcript " + final_transcript);
             testIndex ++;
 
             if (!bshow){

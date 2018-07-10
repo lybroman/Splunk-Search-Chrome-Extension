@@ -79,11 +79,11 @@ audio_recorder.onclick = function() {
                 //document.getElementById("show_text").innerHTML = final_transcript;
 
                 // TODO: @lwei please porting this method call to correct position
-                update_comment(final_transcript, "just dummy comment...");
                 if (!bshow){
                     show_comment_div();
                     bshow = false;
                 }
+                update_comment(final_transcript, "just dummy comment...");
             }
 
         };

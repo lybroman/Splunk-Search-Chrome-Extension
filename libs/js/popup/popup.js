@@ -33,7 +33,7 @@ function get_key_words() {
 audio_recorder.onclick = function() {
     if(!started) {
         recognition = new webkitSpeechRecognition();
-        recognition.continuous = true;
+        recognition.continuous = false;
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
@@ -47,16 +47,24 @@ audio_recorder.onclick = function() {
             alert(event.error)
             started = false;
             SW.stop();
+            started = true;
+            //document.getElementById("status").innerHTML = "start";
+            recognition.start();
         };
 
         recognition.onend = function () {
             //document.getElementById("status").innerHTML = "end";
             started = false;
             SW.stop();
+            started = true;
+            //document.getElementById("status").innerHTML = "start";
+            recognition.start();
         };
 
         recognition.onresult = function (event) {
             let final_transcript = '';
+            // since no continuous mode
+            SW.stop();
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 final_transcript += event.results[i][0].transcript;
             }

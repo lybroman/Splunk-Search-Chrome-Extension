@@ -1,6 +1,3 @@
-chrome.storage.sync.set({convert_color: false}, function() {
-});
-
 chrome.identity.getProfileUserInfo(function(userInfo) {
     let user_info_url = userInfo.id;
     if (user_info_url){

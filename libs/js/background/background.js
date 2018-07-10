@@ -13,3 +13,8 @@ chrome.runtime.onInstalled.addListener(function() {
         }]);
     });
 });
+
+chrome.runtime.onStartup.addListener(function() {
+    chrome.storage.sync.set({convert_color: false}, function() {
+    });
+});

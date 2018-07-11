@@ -1,6 +1,3 @@
-/*
-    initialize
- */
 function SplunkMetaData() {
     // this.indexMap = new Map();
     this.indexList = [];
@@ -98,6 +95,10 @@ SplunkMetaData.prototype.getIndexName = function(indexName) {
         if (temp > maxSim) {
             maxSim = temp;
             ans = name;
+        } else if (temp == maxSim) {
+            if (name.length < ans.length) {
+                ans = name;
+            }
         }
     }
     return ans;
@@ -113,6 +114,10 @@ SplunkMetaData.prototype.getSourceType = function(sourceType) {
         if (temp > maxSim) {
             maxSim = temp;
             ans = name;
+        } else if (temp == maxSim) {
+            if (name.length < ans.length) {
+                ans = name;
+            }
         }
     }
     return ans;
@@ -120,6 +125,9 @@ SplunkMetaData.prototype.getSourceType = function(sourceType) {
 };
 
 SplunkMetaData.prototype.getFieldName = function(fieldName) {
+    // TODO get correct field name
+
+
     return fieldName;
 };
 
@@ -277,28 +285,63 @@ Spl.prototype.extractField = function(statement) {
         fieldValue = array[1].trim();
         fieldType = 'contain';
     } else if (statement.match(/equal[s]? to/i)) {
-        let array = statement.split(/equal[s]? to/i);
+        let array = statement.split(/equal[s]? to/);
         fieldName = array[0].trim();
         fieldValue = array[1].trim();
         fieldType = 'equal';
     } else if (statement.match(/greater than/)) {
-        let array = statement.split(/greater than/i);
+        let array = statement.split(/greater than/);
         fieldName = array[0].trim();
         fieldValue = array[1].trim();
         fieldType = 'greater';
     } else if (statement.match(/less than/)) {
-        let array = statement.split(/less than/i);
+        let array = statement.split(/less than/);
         fieldName = array[0].trim();
         fieldValue = array[1].trim();
         fieldType = 'less';
     } else {
-        let value = statement.trim().split(/\s+/)[0];
+        let value = this.getValue(statement);
         fieldName = 'search_' + value;
         fieldValue = value;
         fieldType = 'search';
     }
 
     return new Field(fieldName, fieldValue, fieldType);
+
+};
+
+
+Spl.prototype.getStatementType = function(statement) {
+
+    // first word
+    let firstStatement = statement.trim().split(/\s+/)[0];
+
+    let statementTypeList = ['index', 'type', 'commit', 'rollback', 'where', 'search'];
+    let maxSim = - 1;
+    let ans = "";
+    for (let type of statementTypeList) {
+        let sim = lcs(type, firstStatement);
+        if (sim > maxSim) {
+            maxSim = sim;
+            ans = type;
+        } else if (sim == maxSim) {
+            if (type.length < ans.length) {
+                ans = type;
+            }
+        }
+    }
+    return ans;
+
+};
+
+Spl.prototype.getValue = function(value) {
+
+    if (value.trim() == '') {
+        return '';
+    } else {
+        let strs = value.trim().split(/\s+/);
+        return strs[strs.length - 1];
+    }
 
 };
 
@@ -309,10 +352,12 @@ Spl.prototype.addNewStatement = function(statement) {
         return false;
     }
 
+    alert(this.getStatementType(statement));
+
     if (this.statementFlag) {
         this.statementFlag = false;
         // add a new statement
-        if (statement.trim().startsWith("index")) {
+        if (this.getStatementType(statement) == "index") {
             // index
             let array = statement.trim().split(/\s+/);
             if (array.length > 1) {
@@ -323,10 +368,10 @@ Spl.prototype.addNewStatement = function(statement) {
                 document.getElementById("show_text").innerHTML = "please say a correct index";
                 return false;
             }
-        } else if (statement.trim().startsWith("type")) {
+        } else if (this.getStatementType(statement) == "type") {
             // source type
             let array = statement.trim().split(/\s+/);
-            if (array.length > 2) {
+            if (array.length > 1) {
                 let sourceType = array[array.length - 1];
                 this.sourceType = splunkMetadata.getSourceType(sourceType);
                 // this.sourceType = sourceType;
@@ -334,7 +379,7 @@ Spl.prototype.addNewStatement = function(statement) {
                 document.getElementById("show_text").innerHTML = "please say a correct source type";
                 return false;
             }
-        } else if (statement.trim().startsWith("commit")) {
+        } else if (this.getStatementType(statement) == "commit") {
             if (this.fieldsMap.size > 0) {
                 let newMap = new Map();
                 this.fieldsMap.forEach(function (field, fieldName) {
@@ -344,7 +389,7 @@ Spl.prototype.addNewStatement = function(statement) {
                 this.fieldsMap.clear();
             }
             return false;
-        } else if (statement.trim().startsWith("rollback")) {
+        } else if (this.getStatementType(statement) == "rollback") {
             if (this.fieldsMap.size > 0) {
                 this.fieldsMap.clear();
             } else {
@@ -352,20 +397,40 @@ Spl.prototype.addNewStatement = function(statement) {
                     this.pipeline.pop();
                 }
             }
-        } else {
+        } else if (this.getStatementType(statement) == 'where') {
+            let strs = statement.trim().split(/\s+/);
+            if (strs.length <= 1) {
+                return false;
+            }
+            statement = "";
+            for (let i = 1;i < strs.length;i ++) {
+                if (i > 1) {
+                    statement += " ";
+                }
+                statement += strs[i];
+            }
+
             if (this.isBetweenStatement(statement)) {
+
                 let strs = statement.trim().split(/between/);
                 let temp = strs[1].split(/and/);
 
-                let fieldValue1 = temp[0].trim();
-                let fieldValue2 = temp[1].trim();
-                let fieldName = strs[0].trim();
+                let fieldValue1 = this.getValue(temp[0]);
+                let fieldValue2 = this.getValue(temp[1]);
+                let fieldName = this.getValue(strs[0]);
 
-                // fieldName > fieldValue1 and fieldName < fieldValue2
-                let newStatement = fieldName + " greater than " + fieldValue1 + " and " + fieldName + " less than " + fieldValue2;
-                // alert(newStatement);
+                // all fields are legal
+                if (fieldName != '' && fieldValue1 != '' && fieldValue2 != '') {
 
-                return this.addNewStatement(newStatement);
+                    // fieldName > fieldValue1 and fieldName < fieldValue2
+                    let newStatement = "where " + fieldName + " greater than " + fieldValue1 + " and " + fieldName + " less than " + fieldValue2;
+                    // alert(newStatement);
+                    this.statementFlag = true;
+
+                    return this.addNewStatement(newStatement);
+                } else {
+                    return false;
+                }
             } else if (this.isBinaryFieldStatement(statement)) {
                 let splitCharacter = "";
                 if (statement.includes("or")) {
@@ -385,6 +450,12 @@ Spl.prototype.addNewStatement = function(statement) {
                 let field = this.extractField(statement);
                 this.fieldsMap.set(field.fieldName, field);
             }
+        } else {
+            // single field
+            let field = this.extractField(statement);
+            this.fieldsMap.set(field.fieldName, field);
+
+            alert(field.fieldName + " " + field.fieldType + " " + field.fieldValue);
         }
         return true;
     } else {
@@ -416,7 +487,7 @@ Spl.prototype.isBetweenStatement = function(statement) {
         return false;
     }
 
-}
+};
 
 
 function Field(fieldName, fieldValue, fieldType) {
@@ -458,6 +529,9 @@ audio_recorder.onclick = function() {
             //started = true;
             //document.getElementById("status").innerHTML = "start";
             //recognition.start();
+
+            recognition.start();
+            started = true;
         };
 
         recognition.onend = function () {
@@ -483,11 +557,9 @@ audio_recorder.onclick = function() {
             final_transcript = final_transcript.trim().toLowerCase();
 
             // for test here
-            /*
             final_transcript = testArray[testIndex];
             alert("final_transcript " + final_transcript);
             testIndex ++;
-            */
 
             if (!bshow){
                 show_comment_div();
@@ -502,10 +574,10 @@ audio_recorder.onclick = function() {
                 if (final_transcript.trim().startsWith("let's have fun")) {
                     workMode = "search";
                     searchInitialize();
-                    alert("begin search");
-                } else if (final_transcript.trim().startsWith("begin navigation")) {
+                    alert("start search");
+                } else if (final_transcript.trim().startsWith("navigation")) {
                     workMode = "navigation";
-                    // alert("start navigation");
+                    alert("start navigation");
                 }
             } else {
                 if (workMode == "search") {
@@ -532,12 +604,12 @@ audio_recorder.onclick = function() {
                         document.getElementById("show_text").innerHTML = splManager.toUrlString();
                     }
                 } else if (workMode == "navigation") {
-                    // TODO add navigation
                     if (final_transcript.trim().startsWith("end navigation")) {
                         workMode = "";
                     } else {
-                        //
+                        // TODO add navigation
 
+                        alert("end navigation");
                     }
                 }
             }
@@ -600,21 +672,21 @@ $(function() {
 
 let testIndex = 0;
 let testArray = [
-                 "start search",
-                 "index equals to _internal",
-                 "source type splunkd",
-                 "commit",
-                 "group equals to queue",
-                 "group equals to test",
-                 "group equals to queue",
-                 "current_size greater than 0",
-                 "current_size equals to 0",
-                 "commit",
-                 "name equals to typingqueue and max_size_kb equals to 500",
-                 "commit",
-                 "largest_size between 10 and 20",
-                 "largest_size greater than 5 and largest_size less than 10",
-                 "commit",
-                 "info",
-                 "commit", "test" , "rollback" , "rollback" , 'rollback' , 'rollback', 'end search'
+                 "let's have fun",
+    "aloha","index is internet",
+    "aloha","type is splunkd",
+    "aloha","commit",
+    "aloha","where group equals to queue",
+    "aloha","where group equals to test",
+    "aloha","where group equals to queue",
+    "aloha","where current_size greater than 0",
+    "aloha","where current_size equals to 0",
+    "aloha","commit",
+    "aloha","where name equals to typingqueue and max_size_kb equals to 500",
+    "aloha", "commit",
+    "aloha","where largest_size between 10 and 20",
+    "aloha","where largest_size greater than 5 and largest_size less than 10",
+    "aloha","commit",
+    "aloha", "search info",
+    "aloha","commit", "aloha","search test" , "aloha","rollback" , "aloha","rollback" , "aloha",'rollback' , '"aloha", rollback', 'end search'
 ];

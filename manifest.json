@@ -44,7 +44,8 @@
         "libs/js/library/jquery.min.js",
         "libs/js/semantic/utils.js",
         "libs/js/library/render_comments.js",
-        "libs/js/library/voice_comment.js"
+        "libs/js/library/voice_comment.js",
+        "libs/js/library/navigation.js"
       ]
     }
   ],

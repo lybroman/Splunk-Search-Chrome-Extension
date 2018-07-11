@@ -391,7 +391,7 @@ Spl.prototype.getSplStringForField = function(field) {
     let ans = "";
     switch (field.fieldType) {
         case "contain":
-            ans = "*" + field.fieldName + "*";
+            ans = field.fieldName + " = *" + field.fieldValue + "*";
             break;
         case "equal":
             ans = field.fieldName + " = " + field.fieldValue;
@@ -419,7 +419,7 @@ Spl.prototype.extractField = function(statement) {
         normal
      */
     let fieldTypeList = ["contain", "equal", "greater", "less"];
-    let fieldPatterns = [["contains", "contain"], ["equals", "equal"], ["greater"], ["less"]];
+    let fieldPatterns = [["contains", "contain", "have", "has", "likes", "like"], ["equals", "equal", "is", "was"], ["greater", "larger", "bigger"], ["less", "smaller"]];
 
     let fieldName = '' , fieldValue = '' , fieldType = '';
     for (let i = 0;i < fieldTypeList.length;i ++) {
@@ -577,16 +577,24 @@ Spl.prototype.addNewStatement = function(statement) {
     if (words.length > 1 && wordMatch("aloha", words[0], "double-metaphone")) {
         b_shortcut = true;
         this.statementFlag = true;
+        set_aloha_status(true);
     }
     else if(wordMatch("aloha", words[0], "double-metaphone")){
         this.statementFlag = true;
+        set_aloha_status(true);
+
+        update_comment(statement, "may i help you");
+        voiceComment = "may i help you";
+
         return false;
     }
     else if(words.length == 1){
-        alert("normal : " + statement);
+        // alert("normal : " + statement);
     }
     if (this.statementFlag) {
         this.statementFlag = false;
+        set_aloha_status(false);
+
         // add a new statement
         let predicted_statement = this.getStatementType(statement, b_shortcut);
         alert("predicted:" + predicted_statement);
@@ -599,8 +607,16 @@ Spl.prototype.addNewStatement = function(statement) {
                 // this.indexName = indexName;
                 // reload fields
                 asyncLoadFields();
+
+                update_comment(statement, "index is " + this.indexName + " now");
+                voiceComment = "index is " + this.indexName + " now";
+
             } else {
-                document.getElementById("show_text").innerHTML = "please say a correct index";
+                // document.getElementById("show_text").innerHTML = "please say a correct index";
+
+                update_comment(statement, "please give me a legal index name");
+                voiceComment = "please give me a legal index name";
+
                 return false;
             }
         } else if (predicted_statement === "type") {
@@ -612,8 +628,16 @@ Spl.prototype.addNewStatement = function(statement) {
                 // this.sourceType = sourceType;
                 // reload fields
                 asyncLoadFields();
+
+                update_comment(statement, "sourcetype is " + this.sourceType + " now");
+                voiceComment = "source type is " + this.sourceType + " now";
+
             } else {
-                document.getElementById("show_text").innerHTML = "please say a correct source type";
+                // document.getElementById("show_text").innerHTML = "please say a correct source type";
+
+                update_comment(statement, "please give me a legal sourcetype");
+                voiceComment = "please give me a legal source type";
+
                 return false;
             }
         } else if (predicted_statement.includes("commit")) {
@@ -624,6 +648,10 @@ Spl.prototype.addNewStatement = function(statement) {
                 });
                 this.pipeline.push(newMap);
                 this.fieldsMap.clear();
+
+                update_comment(statement, "commit current pipeline");
+                voiceComment = "commit current pipeline";
+
             }
             return false;
         } else if (predicted_statement.includes("rollback")) {
@@ -632,11 +660,22 @@ Spl.prototype.addNewStatement = function(statement) {
             } else {
                 if (this.pipeline.length > 0) {
                     this.pipeline.pop();
+                } else {
+                    update_comment(statement, "pipeline is empty");
+                    voiceComment = "pipeline is empty now";
                 }
             }
+
+            update_comment(statement, "rollback current pipeline");
+            voiceComment = "rollback current pipeline";
+
         } else if (predicted_statement === 'where') {
             let strs = statement.trim().split(/\s+/);
             if (strs.length <= 1) {
+
+                update_comment(statement, "please give me a legal where statement");
+                voiceComment = "please give me a legal where statement";
+
                 return false;
             }
             statement = "";
@@ -666,9 +705,17 @@ Spl.prototype.addNewStatement = function(statement) {
                     let newStatement = "where " + fieldName + " greater " + fieldValue1 + " and " + fieldName + " less " + fieldValue2;
                     // alert(newStatement);
                     this.statementFlag = true;
+                    set_aloha_status(true);
+
+                    update_comment(statement, newStatement);
+                    voiceComment = "where " + fieldName + " between " + fieldValue1 + " and " + fieldValue2;
 
                     return this.addNewStatement(newStatement);
                 } else {
+
+                    update_comment(statement, "please give me a legal between statement");
+                    voiceComment = "please give me a legal between statement";
+
                     return false;
                 }
             } else if (this.isBinaryFieldStatement(statement)) {
@@ -695,7 +742,12 @@ Spl.prototype.addNewStatement = function(statement) {
                         splitCharacter, leftField, rightField);
 
                     this.fieldsMap.set(binaryField.fieldName, binaryField);
+
+                    update_comment(statement, splitString + " statement");
+                    voiceComment = splitString + " statement";
                 } else {
+                    update_comment(statement, "please give me a legal " + splitString + " statement");
+                    voiceComment = "please give me a legal " + splitString + " statement";
                     return false;
                 }
             } else {
@@ -703,7 +755,14 @@ Spl.prototype.addNewStatement = function(statement) {
                 let field = this.extractField(statement);
                 if (field.fieldName != '' && field.fieldValue != '') {
                     this.fieldsMap.set(field.fieldName, field);
+
+                    update_comment(statement, field.fieldName + " " + field.fieldValue);
+                    voiceComment = "filter " + field.fieldName;
                 } else {
+
+                    update_comment(statement, "please give me a legal filter statement");
+                    voiceComment = "please give me a legal filter statement";
+
                     return false;
                 }
             }
@@ -719,6 +778,9 @@ Spl.prototype.addNewStatement = function(statement) {
             let fieldValue = this.getValue(statement, 'fieldValue');
             if (fieldValue != '') {
                 this.fieldsMap.set("search_" + fieldValue, new Field("search_" + fieldValue, fieldValue, "search"));
+
+                update_comment(statement, 'search ' + fieldValue);
+                voiceComment = "search " + fieldValue;
             } else {
                 return false;
             }
@@ -727,13 +789,24 @@ Spl.prototype.addNewStatement = function(statement) {
             let field = this.extractField(statement);
             if (field.fieldName != '' && field.fieldValue != '') {
                 this.fieldsMap.set(field.fieldName, field);
+
+                update_comment(statement, "search " + field.fieldValue);
+                voiceComment = "search " + field.fieldValue;
             } else {
+
+                update_comment(statement, "please give me a legal statement");
+                voiceComment = "please give me a legal statement";
+
                 return false;
             }
             // alert(field.fieldName + " " + field.fieldType + " " + field.fieldValue);
         }
         return true;
     } else {
+
+        update_comment(statement, "please say aloha first");
+        voiceComment = "please say aloha first";
+
         return false;
     }
 
@@ -785,6 +858,11 @@ function BinaryField(fieldName , fieldType, leftField, rightField) {
 }
 
 
+/**
+ * the comment need to speak
+ */
+var voiceComment = '';
+
 /*
     chrome initialize
  */
@@ -799,7 +877,7 @@ audio_recorder.onclick = function() {
             started = true;
             //document.getElementById("status").innerHTML = "start";
             SW.start();
-            set_aloha_status(true);
+            // set_aloha_status(true);
         };
 
         recognition.onerror = function (event) {
@@ -823,8 +901,20 @@ audio_recorder.onclick = function() {
             //started = true;
             //document.getElementById("status").innerHTML = "start";
             //recognition.start();
-            recognition.start();
-            started = true;
+
+            // need to speak something
+            if (voiceComment != '') {
+                voice_comment(voiceComment);
+                voiceComment = "";
+            }
+
+            /**
+                trick here
+             */
+            setTimeout(function() {
+                recognition.start();
+                started = true;
+            }, 2500);
         };
 
         recognition.onresult = function (event) {
@@ -846,26 +936,37 @@ audio_recorder.onclick = function() {
                 show_comment_div();
                 bshow = false;
             }
-            update_comment(final_transcript, "just dummy comment...");
-            voice_comment("just dummy comment");
+            // update_comment(final_transcript, "just dummy comment...");
+            // voice_comment("just dummy comment");
 
             // alert(final_transcript);
             alert(final_transcript);
+
+            // navigate_to(final_transcript);
 
             if (workMode == "") {
                 if (final_transcript.trim().startsWith("let's have fun")) {
                     workMode = "search";
                     searchInitialize();
-                    alert("start search");
+
+                    update_comment(final_transcript, "start spl search");
+                    voiceComment = "start spl search";
+                    // alert("start search");
                 } else if (final_transcript.trim().startsWith("navigation")) {
                     workMode = "navigation";
-                    alert("start navigation");
+
+                    update_comment(final_transcript, "start navigation");
+                    voiceComment = "start navigation";
+                    //alert("start navigation");
                 }
             } else {
                 if (workMode == "search") {
-                    if (final_transcript.trim().startsWith("end search")) {
+                    if (final_transcript.trim().startsWith("stop search")) {
                         workMode = "";
-                        alert("end search");
+                        // alert("end search");
+
+                        update_comment(final_transcript, "stop search");
+                        voiceComment = "stop search";
                     } else {
                         let addResult = splManager.addNewStatement(final_transcript.trim());
                         if (addResult) {
@@ -881,11 +982,15 @@ audio_recorder.onclick = function() {
                                     chrome.tabs.update(tab.id, {url: newURL});
                                 });
                                 // chrome.tabs.create({ url: newURL });
+                            } else {
+                                update_comment(final_transcript, "could not get spl from what you have said");
+                                voiceComment = "could not get spl from what you said";
                             }
                         } else {
-                            alert("do not send spl request");
+                            // alert("do not send spl request");
+                            // update_comment(final_transcript, "do not update splunk search page");
+                            // voiceComment = "do not send spl request";
                         }
-                        document.getElementById("show_text").innerHTML = splManager.toUrlString();
                     }
                 } else if (workMode == "navigation") {
                     if (final_transcript.trim().startsWith("end navigation")) {

@@ -97,6 +97,7 @@ audio_recorder.onclick = function() {
                     bshow = false;
                 }
                 update_comment(final_transcript, "just dummy comment...");
+                voice_comment("just dummy comment");
             }
 
         };

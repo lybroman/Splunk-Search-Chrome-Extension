@@ -266,8 +266,8 @@ SplunkMetaData.prototype.getIndexName = function(indexName) {
     let maxDist = - 1;
     let ans = '';
     for (let name of this.indexList) {
-        let temp = editDist(name , indexName);
-        if (temp < maxDist || maxDist < 0) {
+        let temp = lcs(name , indexName);
+        if (temp > maxDist) {
             maxDist = temp;
             ans = name;
         } else if (temp == maxDist) {
@@ -285,8 +285,8 @@ SplunkMetaData.prototype.getSourceType = function(sourceType) {
     let maxDist = - 1;
     let ans = '';
     for (let name of this.sourceTypeList) {
-        let temp = editDist(name, sourceType);
-        if (temp < maxDist || maxDist < 0) {
+        let temp = lcs(name, sourceType);
+        if (temp > maxDist) {
             maxDist = temp;
             ans = name;
         } else if (temp == maxDist) {
@@ -596,7 +596,7 @@ Spl.prototype.getStringWithSamePattern = function(string, pattern, algo = 'sound
 
     let strs = string.trim().split(/\s+/);
     for (let str of strs) {
-        if (wordMatch(str, pattern, algo)) {
+        if (wordMatch(str, pattern, algo) && !nounWordSet.has(str)) {
             return str;
         }
     }
@@ -645,6 +645,9 @@ Spl.prototype.getValue = function(value, valueType) {
                 if (wordMatch(str, fieldName, "double-metaphone")) {
                     return fieldName;
                 }
+                if (fieldName.includes(str)) {
+                    return fieldName;
+                }
 
                 let dist = editDist(fieldName, str);
                 if (dist < maxDist || maxDist < 0) {
@@ -662,6 +665,9 @@ Spl.prototype.getValue = function(value, valueType) {
             for (let fieldName of splunkMetadata.fieldsList) {
                 if (wordMatch(name, fieldName, "double-metaphone")) {
                     return fieldName;
+                }
+                if (fieldName.includes(name)) {
+                    return name;
                 }
 
                 let dist = editDist(fieldName, name);
@@ -730,11 +736,11 @@ Spl.prototype.addNewStatement = function(statement) {
     let words = statement.trim().split(/\s+/);
     let b_shortcut = false;
 
-    // if (words.length > 1 && wordMatch("aloha", words[0], "double-metaphone")) {
-    //     b_shortcut = true;
-    //     this.statementFlag = true;
-    //     set_aloha_status(true);
-    // }
+    if (words.length == 2 && wordMatch("aloha", words[0], "double-metaphone")) {
+        b_shortcut = true;
+        this.statementFlag = true;
+        set_aloha_status(true);
+    }
     if (wordMatch("aloha", words[0], "double-metaphone")){
         this.statementFlag = true;
         set_aloha_status(true);
@@ -806,7 +812,7 @@ Spl.prototype.addNewStatement = function(statement) {
                     voiceComment += ", you may interested in " + recommendResult.join(", ");
 
                     lastRecommendResult = recommendResult;
-                    lastRecommendFlag = 5;
+                    lastRecommendFlag = 2;
                     lastRecommendType = 'index';
                 }
             } else {
@@ -856,7 +862,7 @@ Spl.prototype.addNewStatement = function(statement) {
 
                     lastRecommendResult = recommendResult;
                     lastRecommendType = 'sourcetype';
-                    lastRecommendFlag = 5;
+                    lastRecommendFlag = 2;
                 }
             } else {
                 // document.getElementById("show_text").innerHTML = "please say a correct source type";
@@ -911,6 +917,8 @@ Spl.prototype.addNewStatement = function(statement) {
                 }
                 statement += strs[i];
             }
+
+            alert(statement);
 
             if (this.isBetweenStatement(statement)) {
 
@@ -1144,10 +1152,11 @@ function getStatements(statement) {
         'help', 'me', 'you' , 'should',
         'be', 'might', 'supposed', 'to', 'how', 'would', 'use'];
 
-    let keyWords = ["where", "index", "type", "commit", "search", "rollback", "select", "aloha"];
+    let keyWords = ["where", "wear", "index", "type", "commit", "search", "rollback", "select", "aloha"];
 
     let words = statement.trim().split(/\s+/);
-    words = words.filter(word => !(wordListMatch(word, skippedWords, "double-metaphone")));
+    // words = words.filter(word => !(wordListMatch(word, skippedWords, "double-metaphone")));
+    words = words.filter(word => !(skippedWords.includes(word)));
 
     // find first keyword
     let i = 0;
@@ -1161,6 +1170,9 @@ function getStatements(statement) {
     let statements = [];
     while (i < words.length) {
         let nextStatement = words[i];
+        if (nextStatement == 'wear') {
+            nextStatement = 'where';
+        }
         // start rank
         let startRank = getRank(words[i], keyWords);
         i ++;

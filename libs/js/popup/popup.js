@@ -3,7 +3,7 @@ var nounWordList = "time,year,people,way,day,man,thing,woman,life,child,world,sc
 
 var nounWordSet = new Set();
 for (let str of nounWordList.split(/,/)) {
-    nounWordSet.add(str);
+    nounWordSet.add(str.toLowerCase());
 }
 for (let i = 0;i < 1000000;i ++) {
     nounWordSet.add("" + i);
@@ -59,6 +59,10 @@ SplunkMetaData.prototype.addField = function(fieldName) {
 
 function lcs(string1 , string2) {
 
+    if (string1.length == 0 || string2.length == 0) {
+        return 0;
+    }
+
     let dp = new Array(string1.length);
     for (let i = 0;i < string1.length; i++) {
         dp[i] = new Array(string2.length);
@@ -98,6 +102,59 @@ function lcs(string1 , string2) {
 
 }
 
+function editDist(word1 , word2) {
+
+    if (word1.length == 0 || word2.length == 0) {
+        return word1.length + word2.length;
+    } else {
+        let dp = new Array(word1.length);
+        for (let i = 0;i < word1.length; i++) {
+            dp[i] = new Array(word2.length);
+            for (let j = 0;j < word2.length;j ++) {
+                dp[i][j] = 0;
+            }
+        }
+
+        for (let i = 0;i < word1.length;i ++) {
+            if (word1[i] == word2[0]) {
+                dp[i][0] = i;
+            } else {
+                if (i == 0) {
+                    dp[i][0] = 1;
+                } else {
+                    dp[i][0] = dp[i - 1][0] + 1;
+                }
+            }
+        }
+
+        for (let i = 0;i < word2.length;i ++) {
+            if (word1[0] == word2[i]) {
+                dp[0][i] = i;
+            } else {
+                if (i == 0) {
+                    dp[0][i] = 1;
+                } else {
+                    dp[0][i] = dp[0][i - 1] + 1;
+                }
+            }
+        }
+
+        for (let i = 1;i < word1.length;i ++) {
+            for (let j = 1;j < word2.length;j ++) {
+                if (word1[i] == word2[j]) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    dp[i][j] = Math.min(Math.min(dp[i - 1][j], dp[i][j - 1]), dp[i - 1][j - 1]) + 1;
+                }
+             }
+        }
+
+        return dp[word1.length - 1][word2.length - 1];
+
+    }
+
+}
+
 
 function wordMatch(w0, w1, alg='soundex'){
     if (alg === 'soundex'){
@@ -131,6 +188,15 @@ function wordMatch(w0, w1, alg='soundex'){
     }
 }
 
+function wordListMatch(word, wordList, alg = "soundex") {
+    for (let checkWord of wordList) {
+        if (wordMatch(word, checkWord, alg)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function getWordValue(word, alg = 'soundex') {
     if (alg == 'soundex') {
         return soundex(word);
@@ -142,16 +208,69 @@ function getWordValue(word, alg = 'soundex') {
 }
 
 
+
+function Element(dist, word1 , word2) {
+    this.dist = dist;
+    this.word1 = word1;
+    this.word2 = word2;
+}
+
+// implement recommend function
+function recommend(value, valueType, valueList) {
+
+    let strs = value.split(/\s+/);
+    let elements = [];
+    let ans = [];
+    let visSet = new Set();
+
+    for (let i = 1;i < strs.length;i ++) {
+        let current = strs[i];
+        for (let value of valueList) {
+            if (wordMatch(current, value, "double-metaphone")) {
+                return [];
+            }
+        }
+    }
+    for (let i = 1;i < strs.length;i ++) {
+        for (let value of valueList) {
+            let dist = editDist(strs[i] , value);
+            elements.push(new Element(dist, strs[i] , value));
+        }
+    }
+    elements.sort(function(e1 , e2) {
+       if (e1.dist < e2.dist) {
+           return - 1;
+       } else if (e1.dist > e2.dist) {
+           return 1;
+       } else {
+           return 0;
+       }
+    });
+
+    for (let e of elements) {
+        if (!visSet.has(e.word2)) {
+            visSet.add(e.word2);
+            ans.push(e.word2);
+            if (ans.length == 4) {
+                break;
+            }
+        }
+    }
+    return ans;
+
+};
+
+
 SplunkMetaData.prototype.getIndexName = function(indexName) {
 
-    let maxSim = - 1;
+    let maxDist = - 1;
     let ans = '';
     for (let name of this.indexList) {
-        let temp = lcs(name , indexName);
-        if (temp > maxSim) {
-            maxSim = temp;
+        let temp = editDist(name , indexName);
+        if (temp < maxDist || maxDist < 0) {
+            maxDist = temp;
             ans = name;
-        } else if (temp == maxSim) {
+        } else if (temp == maxDist) {
             if (name.length < ans.length) {
                 ans = name;
             }
@@ -163,14 +282,14 @@ SplunkMetaData.prototype.getIndexName = function(indexName) {
 
 SplunkMetaData.prototype.getSourceType = function(sourceType) {
 
-    let maxSim = - 1;
+    let maxDist = - 1;
     let ans = '';
     for (let name of this.sourceTypeList) {
-        let temp = lcs(name, sourceType);
-        if (temp > maxSim) {
-            maxSim = temp;
+        let temp = editDist(name, sourceType);
+        if (temp < maxDist || maxDist < 0) {
+            maxDist = temp;
             ans = name;
-        } else if (temp == maxSim) {
+        } else if (temp == maxDist) {
             if (name.length < ans.length) {
                 ans = name;
             }
@@ -182,14 +301,14 @@ SplunkMetaData.prototype.getSourceType = function(sourceType) {
 
 SplunkMetaData.prototype.getFieldName = function(fieldName) {
 
-    let maxSim = - 1;
+    let maxDist = - 1;
     let ans = '';
     for (let name of this.fieldsList) {
-        let temp = lcs(name, fieldName);
-        if (temp > maxSim) {
-            maxSim = temp;
+        let temp = editDist(name, fieldName);
+        if (temp < maxDist || maxDist < 0) {
+            maxDist = temp;
             ans = name;
-        } else if (temp == maxSim) {
+        } else if (temp == maxDist) {
             if (name.length < ans.length) {
                 ans = name;
             }
@@ -341,6 +460,18 @@ function Spl() {
     this.fieldsMap = new Map();
 }
 
+
+/**
+ * variables related to recommend
+ */
+var lastRecommendResult = [];
+var lastRecommendType = '';
+var lastRecommendFlag = 0;
+
+Spl.prototype.setStatementFlag = function(statementFlag) {
+    this.statementFlag = statementFlag;
+};
+
 Spl.prototype.toUrlString = function() {
 
     // construct url from indexName, sourceType, pipeline and current fieldsMap
@@ -477,18 +608,18 @@ Spl.prototype.getStatementType = function(statement, b_shortcut=false) {
     // first word
     let firstStatement = !b_shortcut ? statement.trim().split(/\s+/)[0] : statement;
 
-    let statementTypeList = !b_shortcut ? ['index', 'type', 'commit', 'rollback', 'where', 'search'] : ['aloha commit', 'aloha rollback'];
-    let maxSim = - 1;
+    let statementTypeList = !b_shortcut ? ['aloha', 'index', 'type', 'commit', 'rollback', 'where', 'search', 'select'] : ['aloha commit', 'aloha rollback'];
+    let maxDist = - 1;
     let ans = "";
     for (let type of statementTypeList) {
         if (this.isPrefix(type, statement, 'double-metaphone')){
             return type;
         }
-        let sim = lcs(type, firstStatement);
-        if (sim > maxSim) {
-            maxSim = sim;
+        let dist = editDist(type, firstStatement);
+        if (dist < maxDist || maxDist < 0) {
+            maxDist = dist;
             ans = type;
-        } else if (sim == maxSim) {
+        } else if (dist == maxDist) {
             if (type.length < ans.length) {
                 ans = type;
             }
@@ -503,23 +634,47 @@ Spl.prototype.getValue = function(value, valueType) {
     if (valueType == 'fieldName') {
         let nounArray = nlp(value).nouns().out("array");
 
-        let maxSim = - 1;
+        let maxDist = - 1;
         let strs = value.trim().split(/\s+/);
-        let ans = strs[strs.length - 1];
+        let ans = "";
 
-        for (let name of nounArray) {
+        for (let str of strs) {
+            // if (nounArray.has(str)) {
             for (let fieldName of splunkMetadata.fieldsList) {
-                let dist = lcs(fieldName, name);
-                if (dist > maxSim) {
-                    maxSim = dist;
+                if (wordMatch(str, fieldName, "double-metaphone")) {
+                    return fieldName;
+                }
+
+                let dist = editDist(fieldName, str);
+                if (dist < maxDist || maxDist < 0) {
+                    maxDist = dist;
                     ans = fieldName;
-                } else if (dist == maxSim) {
+                } else if (dist == maxDist) {
                     if (fieldName.length < ans.length) {
                         ans = fieldName;
                     }
                 }
             }
         }
+
+        for (let name of nounArray) {
+            for (let fieldName of splunkMetadata.fieldsList) {
+                if (wordMatch(name, fieldName, "double-metaphone")) {
+                    return fieldName;
+                }
+
+                let dist = editDist(fieldName, name);
+                if (dist < maxDist || maxDist < 0) {
+                    maxDist = dist;
+                    ans = fieldName;
+                } else if (dist == maxDist) {
+                    if (fieldName.length < ans.length) {
+                        ans = fieldName;
+                    }
+                }
+            }
+        }
+
         return ans;
     } else if (valueType == 'fieldValue') {
         /**
@@ -574,26 +729,28 @@ Spl.prototype.addNewStatement = function(statement) {
     let words = statement.trim().split(/\s+/);
     let b_shortcut = false;
 
-    if (words.length > 1 && wordMatch("aloha", words[0], "double-metaphone")) {
-        b_shortcut = true;
-        this.statementFlag = true;
-        set_aloha_status(true);
-    }
-    else if(wordMatch("aloha", words[0], "double-metaphone")){
+    // if (words.length > 1 && wordMatch("aloha", words[0], "double-metaphone")) {
+    //     b_shortcut = true;
+    //     this.statementFlag = true;
+    //     set_aloha_status(true);
+    // }
+    if (wordMatch("aloha", words[0], "double-metaphone")){
         this.statementFlag = true;
         set_aloha_status(true);
 
         update_comment(statement, "may i help you");
-        voiceComment = "may i help you";
+        voiceComment += ", may i help you";
 
         return false;
     }
-    else if(words.length == 1){
-        // alert("normal : " + statement);
-    }
+
     if (this.statementFlag) {
-        this.statementFlag = false;
         set_aloha_status(false);
+
+        // used in index and source type
+        let skippedWords = ['could', 'can', 'would', 'please',
+            'help', 'me', 'you' , 'should',
+            'be', 'might', 'supposed', 'to', 'how', 'would', 'is', 'was', 'this', 'that', 'equal', 'equals'];
 
         // add a new statement
         let predicted_statement = this.getStatementType(statement, b_shortcut);
@@ -602,15 +759,43 @@ Spl.prototype.addNewStatement = function(statement) {
             // index
             let array = statement.trim().split(/\s+/);
             if (array.length > 1) {
-                let indexName = array[array.length - 1];
-                this.indexName = splunkMetadata.getIndexName(indexName);
-                // this.indexName = indexName;
-                // reload fields
+                let finalIndexName = "";
+                for (let i = 1;i < array.length;i ++) {
+                    if (skippedWords.includes(array[i])) {
+                        continue;
+                    }
+
+                    let indexName = splunkMetadata.getIndexName(array[i]);
+                    if (wordMatch(indexName, array[i], 'double-metaphone')) {
+                        finalIndexName = indexName;
+                        break;
+                    }
+                    if (finalIndexName == "" || (indexName.length < finalIndexName.length)) {
+                        finalIndexName = indexName;
+                    }
+                }
+                if (finalIndexName == "") {
+                    update_comment(statement, "please give me a legal index name");
+                    voiceComment = "please give me a legal index name";
+                    return false;
+                }
+                this.indexName = finalIndexName;
+
                 asyncLoadFields();
 
                 update_comment(statement, "index is " + this.indexName + " now");
-                voiceComment = "index is " + this.indexName + " now";
+                voiceComment += ", index is " + this.indexName + " now";
 
+                // recommend
+                let recommendResult = recommend(statement, 'index', splunkMetadata.indexList);
+                if (recommendResult.length > 0) {
+                    update_comment("index", "you may interested in " + recommendResult.join(", "));
+                    voiceComment += ", you may interested in " + recommendResult.join(", ");
+
+                    lastRecommendResult = recommendResult;
+                    lastRecommendFlag = 5;
+                    lastRecommendType = 'index';
+                }
             } else {
                 // document.getElementById("show_text").innerHTML = "please say a correct index";
 
@@ -623,15 +808,43 @@ Spl.prototype.addNewStatement = function(statement) {
             // source type
             let array = statement.trim().split(/\s+/);
             if (array.length > 1) {
-                let sourceType = array[array.length - 1];
-                this.sourceType = splunkMetadata.getSourceType(sourceType);
-                // this.sourceType = sourceType;
-                // reload fields
+                let finalSourceType = "";
+                for (let i = 1;i < array.length;i ++) {
+                    if (skippedWords.includes(array[i])) {
+                        continue;
+                    }
+
+                    let sourceType = splunkMetadata.getSourceType(array[i]);
+                    if (wordMatch(sourceType, array[i], "double-metaphone")) {
+                        finalSourceType = sourceType;
+                        break;
+                    }
+                    if (finalSourceType == "" || (sourceType.length < finalSourceType.length)) {
+                        finalSourceType = sourceType;
+                    }
+                }
+                if (finalSourceType == "") {
+                    update_comment(statement, "please give me a legal sourcetype");
+                    voiceComment = "please give me a legal source type";
+                    return false;
+                }
+                this.sourceType = finalSourceType;
+
                 asyncLoadFields();
 
                 update_comment(statement, "sourcetype is " + this.sourceType + " now");
-                voiceComment = "source type is " + this.sourceType + " now";
+                voiceComment = ", source type is " + this.sourceType + " now";
 
+                // recommend
+                let recommendResult = recommend(statement, 'sorucetype', splunkMetadata.sourceTypeList);
+                if (recommendResult.length > 0) {
+                    update_comment("source type", "you may interested in " + recommendResult.join(", "));
+                    voiceComment += ", you may interested in " + recommendResult.join(", ");
+
+                    lastRecommendResult = recommendResult;
+                    lastRecommendType = 'sourcetype';
+                    lastRecommendFlag = 5;
+                }
             } else {
                 // document.getElementById("show_text").innerHTML = "please say a correct source type";
 
@@ -650,7 +863,7 @@ Spl.prototype.addNewStatement = function(statement) {
                 this.fieldsMap.clear();
 
                 update_comment(statement, "commit current pipeline");
-                voiceComment = "commit current pipeline";
+                voiceComment += ", commit current pipeline";
 
             }
             return false;
@@ -667,7 +880,7 @@ Spl.prototype.addNewStatement = function(statement) {
             }
 
             update_comment(statement, "rollback current pipeline");
-            voiceComment = "rollback current pipeline";
+            voiceComment += ", rollback current pipeline";
 
         } else if (predicted_statement === 'where') {
             let strs = statement.trim().split(/\s+/);
@@ -708,7 +921,7 @@ Spl.prototype.addNewStatement = function(statement) {
                     set_aloha_status(true);
 
                     update_comment(statement, newStatement);
-                    voiceComment = "where " + fieldName + " between " + fieldValue1 + " and " + fieldValue2;
+                    voiceComment += ", where " + fieldName + " between " + fieldValue1 + " and " + fieldValue2;
 
                     return this.addNewStatement(newStatement);
                 } else {
@@ -744,7 +957,7 @@ Spl.prototype.addNewStatement = function(statement) {
                     this.fieldsMap.set(binaryField.fieldName, binaryField);
 
                     update_comment(statement, splitString + " statement");
-                    voiceComment = splitString + " statement";
+                    voiceComment += ", " + splitString + " statement";
                 } else {
                     update_comment(statement, "please give me a legal " + splitString + " statement");
                     voiceComment = "please give me a legal " + splitString + " statement";
@@ -757,7 +970,7 @@ Spl.prototype.addNewStatement = function(statement) {
                     this.fieldsMap.set(field.fieldName, field);
 
                     update_comment(statement, field.fieldName + " " + field.fieldValue);
-                    voiceComment = "filter " + field.fieldName;
+                    voiceComment += ", filter " + field.fieldName;
                 } else {
 
                     update_comment(statement, "please give me a legal filter statement");
@@ -780,8 +993,50 @@ Spl.prototype.addNewStatement = function(statement) {
                 this.fieldsMap.set("search_" + fieldValue, new Field("search_" + fieldValue, fieldValue, "search"));
 
                 update_comment(statement, 'search ' + fieldValue);
-                voiceComment = "search " + fieldValue;
+                voiceComment += ", search " + fieldValue;
             } else {
+                return false;
+            }
+        } else if (predicted_statement == 'select') {
+            if (lastRecommendFlag > 0) {
+                let candidates = ['apple' , 'banana' , 'cat' , 'dog'];
+                let strs = statement.trim().split(/\s+/);
+                if (strs.length > 1) {
+                    let choose = '';
+                    for (let i = 1; i < strs.length; i++) {
+                        let word = strs[i];
+                        for (let candidate of candidates) {
+                            if (wordMatch(word, candidate, 'double-metaphone')) {
+                                choose = candidate;
+                                break;
+                            }
+                        }
+                        if (choose != '') {
+                            break;
+                        }
+                    }
+                    if (choose != '') {
+                        let index = choose.charCodeAt(0) - 97;
+                        if (lastRecommendType == 'index') {
+                            this.indexName = lastRecommendResult[index];
+                        } else if (lastRecommendType == 'sourcetype') {
+                            this.sourceType = lastRecommendResult[index];
+                        }
+                        update_comment(statement, "update " + lastRecommendType + " to " + lastRecommendResult[index]);
+                        voiceComment += ", update " + lastRecommendType + " to " + lastRecommendResult[index];
+                        lastRecommendFlag = 0;
+
+                        return true;
+                    } else {
+                        voiceComment += "illegal selection";
+                        return false;
+                    }
+                } else {
+                    voiceComment += "illegal selection";
+                    return false;
+                }
+            } else {
+                voiceComment += "no recommend result could be selected";
                 return false;
             }
         } else {
@@ -791,7 +1046,7 @@ Spl.prototype.addNewStatement = function(statement) {
                 this.fieldsMap.set(field.fieldName, field);
 
                 update_comment(statement, "search " + field.fieldValue);
-                voiceComment = "search " + field.fieldValue;
+                voiceComment += ", search " + field.fieldValue;
             } else {
 
                 update_comment(statement, "please give me a legal statement");
@@ -858,6 +1113,59 @@ function BinaryField(fieldName , fieldType, leftField, rightField) {
 }
 
 
+function getRank(keyword, keywordList){
+    for (let i = 0;i < keywordList.length;i ++) {
+        if (keywordList[i] == keyword) {
+            return i;
+        }
+    }
+    // default rank is the lowest one
+    return keywordList.length;
+}
+
+function getStatements(statement) {
+    /**
+     * get statements from statement
+     */
+    let skippedWords = ['could', 'can', 'would', 'please',
+        'help', 'me', 'you' , 'should',
+        'be', 'might', 'supposed', 'to', 'how', 'would', 'use'];
+
+    let keyWords = ["where", "index", "type", "commit", "search", "rollback", "select", "aloha"];
+
+    let words = statement.trim().split(/\s+/);
+    words = words.filter(word => !(wordListMatch(word, skippedWords, "double-metaphone")));
+
+    // find first keyword
+    let i = 0;
+    while (i < words.length) {
+        if (wordListMatch(words[i], keyWords, "double-metaphone")) {
+            break;
+        }
+        i ++;
+    }
+
+    let statements = [];
+    while (i < words.length) {
+        let nextStatement = words[i];
+        // start rank
+        let startRank = getRank(words[i], keyWords);
+        i ++;
+        while (i < words.length && (!wordListMatch(words[i], keyWords, "double-metaphone") || startRank <= getRank(words[i], keyWords))) {
+            nextStatement = nextStatement + " " + words[i];
+            i ++;
+        }
+        statements.push(nextStatement);
+    }
+
+    alert(statements.length + " statements");
+    for (let s of statements) {
+        alert(s);
+    }
+
+    return statements;
+}
+
 /**
  * the comment need to speak
  */
@@ -914,7 +1222,7 @@ audio_recorder.onclick = function() {
             setTimeout(function() {
                 recognition.start();
                 started = true;
-            }, 2500);
+            }, 500);
         };
 
         recognition.onresult = function (event) {
@@ -939,18 +1247,18 @@ audio_recorder.onclick = function() {
             // update_comment(final_transcript, "just dummy comment...");
             // voice_comment("just dummy comment");
 
-            // alert(final_transcript);
             alert(final_transcript);
 
+            // TODO navigate
             // navigate_to(final_transcript);
 
             if (workMode == "") {
-                if (final_transcript.trim().startsWith("let's have fun")) {
+                if (final_transcript.trim().startsWith("aloha")) {
                     workMode = "search";
                     searchInitialize();
 
-                    update_comment(final_transcript, "start spl search");
-                    voiceComment = "start spl search";
+                    update_comment(final_transcript, "yes i'm here");
+                    voiceComment = "yes i'm here";
                     // alert("start search");
                 } else if (final_transcript.trim().startsWith("navigation")) {
                     workMode = "navigation";
@@ -968,29 +1276,40 @@ audio_recorder.onclick = function() {
                         update_comment(final_transcript, "stop search");
                         voiceComment = "stop search";
                     } else {
-                        let addResult = splManager.addNewStatement(final_transcript.trim());
-                        if (addResult) {
-                            let spl = splManager.toUrlString();
-                            // spl is legal
-                            if (spl != '') {
-                                let newURL = "http://localhost:8000/en-US/app/search/search?earliest=0&latest=&q=search%20" +
-                                    encodeURI(spl) +
-                                    "&display.page.search.mode=smart&dispatch.sample_ratio=1";
+                        // split statement
+                        let statements = getStatements(final_transcript.trim());
+                        // execute all statements
+                        for (let statement of statements) {
+                            let addResult = splManager.addNewStatement(statement);
+                            if (addResult) {
+                                let spl = splManager.toUrlString();
+                                // spl is legal
+                                if (spl != '') {
+                                    let newURL = "http://localhost:8000/en-US/app/search/search?earliest=0&latest=&q=search%20" +
+                                        encodeURI(spl) +
+                                        "&display.page.search.mode=smart&dispatch.sample_ratio=1";
 
-                                chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-                                    var tab = tabs[0];
-                                    chrome.tabs.update(tab.id, {url: newURL});
-                                });
-                                // chrome.tabs.create({ url: newURL });
+                                    chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+                                        var tab = tabs[0];
+                                        chrome.tabs.update(tab.id, {url: newURL});
+                                    });
+                                    // chrome.tabs.create({ url: newURL });
+                                } else {
+                                    update_comment(final_transcript, "could not get spl from what you have said");
+                                    voiceComment = "could not get spl from what you have said";
+                                }
                             } else {
-                                update_comment(final_transcript, "could not get spl from what you have said");
-                                voiceComment = "could not get spl from what you said";
+                                // alert("do not send spl request");
+                                // update_comment(final_transcript, "do not update splunk search page");
+                                // voiceComment = "do not send spl request";
                             }
-                        } else {
-                            // alert("do not send spl request");
-                            // update_comment(final_transcript, "do not update splunk search page");
-                            // voiceComment = "do not send spl request";
                         }
+                        // not simple aloha
+                        if (!(statements.length == 1 && splManager.getStatementType(statements[0], false) == 'aloha')) {
+
+                            splManager.setStatementFlag(false);
+                        }
+                        lastRecommendFlag = Math.max(lastRecommendFlag - 1 , 0);
                     }
                 } else if (workMode == "navigation") {
                     if (final_transcript.trim().startsWith("end navigation")) {
@@ -1061,7 +1380,9 @@ $(function() {
 
 let testIndex = 0;
 let testArray = [
-                 "let's have fun",
+                 // "let's have fun",
+                 // "aloha index is internet",
+                 // "aloha select apple"
     // "aloha","index is internet",
     // "aloha","type is splunkd",
     // "aloha","commit",
@@ -1078,5 +1399,6 @@ let testArray = [
     // "aloha","commit",
     // "aloha", "search info",
     // "aloha","commit",
-    "aloha","search test" , "aloha","rollback" , "aloha","rollback" , "aloha",'rollback' , '"aloha", rollback', 'end search'
+    // "aloha","search test" , "aloha","rollback" , "aloha","rollback" , "aloha",'rollback' , '"aloha", rollback', 'end search'
+
 ];

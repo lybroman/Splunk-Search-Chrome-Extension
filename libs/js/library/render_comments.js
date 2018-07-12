@@ -1,5 +1,5 @@
 const g_pony_comment =
-    '<div class="clearfix custom_comment" style="margin-left: 10px">' +
+    '<div class="clearfix custom_comment" style="margin-left: 2px">' +
     '<div class="ui comments" style="text-align:left">' +
         '<div class="comment">' +
             '<a class="avatar">' +
@@ -60,7 +60,8 @@ function update_comment(user_comment, pony_comment) {
             //.replace('{{shuffle}}', uid);
         let pony_comment_html = g_pony_comment.replace('{{arg_pony_comment}}', pony_comment)
             .replace('{{shuffle}}', uid);
-        let all = user_comment_html + pony_comment_html;
+        // let all = user_comment_html + pony_comment_html;
+        let all = pony_comment_html;
         let cmts = $("#comments");
         cmts.append(all);
         const c_div = document.getElementById("comments");

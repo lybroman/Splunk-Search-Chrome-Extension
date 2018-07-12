@@ -327,6 +327,7 @@ let workMode = "";
 let recognition;
 let b_highlight = false;
 var SW;
+let b_manually_stop = false;
 
 // Move this part to somewhere else later
 
@@ -744,6 +745,18 @@ Spl.prototype.addNewStatement = function(statement) {
         return false;
     }
 
+    if(statement.match(/ask.*question/i)){
+
+        //chrome.tabs.create({ url: 'https://answers.splunk.com/answers/ask.html'});
+        update_comment(statement, "Hope you could find answers from the Ninja Masters!");
+        voiceComment = "Hope you could find answers from the Ninja Masters!";
+        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+            var tab = tabs[0];
+            chrome.tabs.update(tab.id, {url: 'https://answers.splunk.com/answers/ask.html'});
+        });
+        return false;
+    }
+
     if (this.statementFlag) {
         set_aloha_status(false);
 
@@ -1059,8 +1072,8 @@ Spl.prototype.addNewStatement = function(statement) {
         return true;
     } else {
 
-        update_comment(statement, "please say aloha first");
-        voiceComment = "please say aloha first";
+        update_comment(statement, "If you want to start a command. Please say aloha firstly.");
+        voiceComment = "If you want to start a command. Please say aloha firstly.";
 
         return false;
     }
@@ -1205,7 +1218,8 @@ audio_recorder.onclick = function() {
             //document.getElementById("status").innerHTML = "end";
             started = false;
             SW.stop();
-            set_aloha_status(false);
+
+            // set_aloha_status(false);
             //started = true;
             //document.getElementById("status").innerHTML = "start";
             //recognition.start();
@@ -1219,17 +1233,21 @@ audio_recorder.onclick = function() {
             /**
                 trick here
              */
-            setTimeout(function() {
-                recognition.start();
-                started = true;
-            }, 500);
+            if (!b_manually_stop) {
+                setTimeout(function () {
+                    recognition.start();
+                    started = true;
+                }, 2500);
+            }
+            else {
+                b_manually_stop = false;
+            }
         };
 
         recognition.onresult = function (event) {
             let final_transcript = '';
 
             SW.stop();
-            set_aloha_status(false);
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 final_transcript += event.results[i][0].transcript;
             }
@@ -1240,10 +1258,7 @@ audio_recorder.onclick = function() {
             // alert("final_transcript " + final_transcript);
             // testIndex ++;
 
-            if (!bshow){
-                show_comment_div();
-                bshow = false;
-            }
+
             // update_comment(final_transcript, "just dummy comment...");
             // voice_comment("just dummy comment");
 
@@ -1251,6 +1266,9 @@ audio_recorder.onclick = function() {
 
             // TODO navigate
             // navigate_to(final_transcript);
+            if (final_transcript !== 'aloha'){
+                set_aloha_status(false);
+            }
 
             if (workMode == "") {
                 if (final_transcript.trim().startsWith("aloha")) {
@@ -1260,6 +1278,11 @@ audio_recorder.onclick = function() {
                     update_comment(final_transcript, "yes i'm here");
                     voiceComment = "yes i'm here";
                     // alert("start search");
+
+                    if (!bshow){
+                        show_comment_div();
+                        bshow = false;
+                    }
                 } else if (final_transcript.trim().startsWith("navigation")) {
                     workMode = "navigation";
 
@@ -1327,6 +1350,7 @@ audio_recorder.onclick = function() {
     else
     {
         recognition.stop();
+        b_manually_stop = true;
     }
 };
 

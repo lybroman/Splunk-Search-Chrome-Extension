@@ -1220,9 +1220,6 @@ audio_recorder.onclick = function() {
             set_aloha_status(false);
             //started = true;
             //document.getElementById("status").innerHTML = "start";
-            //recognition.start();
-
-            recognition.start();
             started = true;
         };
 
@@ -1230,7 +1227,7 @@ audio_recorder.onclick = function() {
             //document.getElementById("status").innerHTML = "end";
             started = false;
             SW.stop();
-
+            alert("on end'");
             // set_aloha_status(false);
             //started = true;
             //document.getElementById("status").innerHTML = "start";
@@ -1241,10 +1238,18 @@ audio_recorder.onclick = function() {
                 voice_comment(voiceComment);
                 voiceComment = "";
             }
+            else{
+                if(!b_manually_stop){
+                recognition.start();
+                }
+                else{
+                    b_manually_stop = false;
+                }
+            }
 
             /**
                 trick here
-             */
+
             if (!b_manually_stop) {
                 setTimeout(function () {
                     recognition.start();
@@ -1253,13 +1258,13 @@ audio_recorder.onclick = function() {
             }
             else {
                 b_manually_stop = false;
-            }
+            }*/
         };
 
         recognition.onresult = function (event) {
             let final_transcript = '';
-
             SW.stop();
+            //recognition.abort();
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 final_transcript += event.results[i][0].transcript;
             }

@@ -264,7 +264,7 @@ function recommend(value, valueType, valueList) {
 SplunkMetaData.prototype.getIndexName = function(indexName) {
 
     let maxDist = - 1;
-    let ans = '';
+    let ans = indexName;
     for (let name of this.indexList) {
         let temp = lcs(name , indexName);
         if (temp > maxDist) {
@@ -283,7 +283,7 @@ SplunkMetaData.prototype.getIndexName = function(indexName) {
 SplunkMetaData.prototype.getSourceType = function(sourceType) {
 
     let maxDist = - 1;
-    let ans = '';
+    let ans = sourceType;
     for (let name of this.sourceTypeList) {
         let temp = lcs(name, sourceType);
         if (temp > maxDist) {
@@ -419,7 +419,7 @@ function asyncLoadFields() {
         splunkMetadata.fieldsList.pop();
     }
     get_fields(splManager.indexName, splManager.sourceType, function(result) {
-        alert("get all fields success: " + result.length);
+        // alert("get all fields success: " + result.length);
         for (let fieldName of result) {
             splunkMetadata.addField(fieldName);
         }
@@ -550,20 +550,22 @@ Spl.prototype.extractField = function(statement) {
         less than
         normal
      */
-    let fieldTypeList = ["contain", "equal", "greater", "less"];
-    let fieldPatterns = [["contains", "contain", "have", "has", "likes", "like"], ["equals", "equal", "is", "was"], ["greater", "larger", "bigger"], ["less", "smaller"]];
+    let fieldTypeList = ["greater", "contain", "equal", "less"];
+    let fieldPatterns = [["greater", "larger", "bigger"], ["contains", "contain", "have", "has", "likes", "like"], ["equals", "equal", "is", "was"], ["less", "smaller"]];
 
     let fieldName = '' , fieldValue = '' , fieldType = '';
     for (let i = 0;i < fieldTypeList.length;i ++) {
         for (let pattern of fieldPatterns[i]) {
             let patternString = this.getStringWithSamePattern(statement, pattern, 'double-metaphone');
             if (statement.match(patternString)) {
+                // alert(patternString);
+
                 let strs = statement.split(patternString);
                 fieldName = this.getValue(strs[0].trim(), 'fieldName');
                 fieldValue = this.getValue(strs[1].trim(), 'fieldValue');
                 fieldType = fieldTypeList[i];
 
-                alert(fieldName + "-" + fieldValue + "-" + fieldType);
+                // alert(fieldName + "-" + fieldValue + "-" + fieldType);
 
                 return new Field(fieldName, fieldValue, fieldType);
             }
@@ -572,7 +574,7 @@ Spl.prototype.extractField = function(statement) {
 
     let value = this.getValue(statement, 'fieldValue');
 
-    alert("search_" + value);
+    // alert("search_" + value);
 
     return new Field("search_" + value, value, "search");
 
@@ -640,6 +642,9 @@ Spl.prototype.getValue = function(value, valueType) {
         let ans = "";
 
         for (let str of strs) {
+            if (ans == '') {
+                ans = str;
+            }
             // if (nounArray.has(str)) {
             for (let fieldName of splunkMetadata.fieldsList) {
                 if (wordMatch(str, fieldName, "double-metaphone")) {
@@ -662,6 +667,9 @@ Spl.prototype.getValue = function(value, valueType) {
         }
 
         for (let name of nounArray) {
+            if (ans == '') {
+                ans = name;
+            }
             for (let fieldName of splunkMetadata.fieldsList) {
                 if (wordMatch(name, fieldName, "double-metaphone")) {
                     return fieldName;
@@ -731,12 +739,18 @@ Spl.prototype.getValue = function(value, valueType) {
 
 };
 
-Spl.prototype.addNewStatement = function(statement) {
+Spl.prototype.addNewStatement = function(statement, multi) {
 
     let words = statement.trim().split(/\s+/);
     let b_shortcut = false;
 
-    if (words.length == 2 && wordMatch("aloha", words[0], "double-metaphone")) {
+    if (words.length == 2 && wordMatch("aloha", words[0], "soundex")) {
+        if (words[1] == "throwback" || words[1] == "robach") {
+            words[1] = "rollback";
+        }
+    }
+
+    if (words.length == 2 && wordMatch("aloha", words[0], "soundex")) {
         b_shortcut = true;
         this.statementFlag = true;
         set_aloha_status(true);
@@ -745,12 +759,16 @@ Spl.prototype.addNewStatement = function(statement) {
         this.statementFlag = true;
         set_aloha_status(true);
 
-        update_comment(statement, "may i help you");
-        voiceComment += ", may i help you";
+        // not multi
+        if (!multi) {
+            update_comment(statement, "may i help you");
+            voiceComment += ", may i help you";
+        }
 
         return false;
     }
 
+    /*
     if(statement.match(/ask.*question/i)){
 
         //chrome.tabs.create({ url: 'https://answers.splunk.com/answers/ask.html'});
@@ -761,7 +779,7 @@ Spl.prototype.addNewStatement = function(statement) {
             chrome.tabs.update(tab.id, {url: 'https://answers.splunk.com/answers/ask.html'});
         });
         return false;
-    }
+    }*/
 
     if (this.statementFlag) {
         set_aloha_status(false);
@@ -773,7 +791,7 @@ Spl.prototype.addNewStatement = function(statement) {
 
         // add a new statement
         let predicted_statement = this.getStatementType(statement, b_shortcut);
-        alert("predicted:" + predicted_statement);
+        // alert("predicted:" + predicted_statement);
         if (predicted_statement === "index") {
             // index
             let array = statement.trim().split(/\s+/);
@@ -812,7 +830,7 @@ Spl.prototype.addNewStatement = function(statement) {
                     voiceComment += ", you may interested in " + recommendResult.join(", ");
 
                     lastRecommendResult = recommendResult;
-                    lastRecommendFlag = 2;
+                    lastRecommendFlag = 3;
                     lastRecommendType = 'index';
                 }
             } else {
@@ -862,7 +880,7 @@ Spl.prototype.addNewStatement = function(statement) {
 
                     lastRecommendResult = recommendResult;
                     lastRecommendType = 'sourcetype';
-                    lastRecommendFlag = 2;
+                    lastRecommendFlag = 3;
                 }
             } else {
                 // document.getElementById("show_text").innerHTML = "please say a correct source type";
@@ -918,7 +936,7 @@ Spl.prototype.addNewStatement = function(statement) {
                 statement += strs[i];
             }
 
-            alert(statement);
+            // alert(statement);
 
             if (this.isBetweenStatement(statement)) {
 
@@ -944,7 +962,7 @@ Spl.prototype.addNewStatement = function(statement) {
                     update_comment(statement, newStatement);
                     voiceComment += ", where " + fieldName + " between " + fieldValue1 + " and " + fieldValue2;
 
-                    return this.addNewStatement(newStatement);
+                    return this.addNewStatement(newStatement, multi);
                 } else {
 
                     update_comment(statement, "please give me a legal between statement");
@@ -1152,7 +1170,7 @@ function getStatements(statement) {
         'help', 'me', 'you' , 'should',
         'be', 'might', 'supposed', 'to', 'how', 'would', 'use'];
 
-    let keyWords = ["where", "wear", "index", "type", "commit", "search", "rollback", "select", "aloha"];
+    let keyWords = ["where", "wear", "whose", "which", "index", "type", "commit", "search", "rollback", "select", "aloha"];
 
     let words = statement.trim().split(/\s+/);
     // words = words.filter(word => !(wordListMatch(word, skippedWords, "double-metaphone")));
@@ -1170,7 +1188,7 @@ function getStatements(statement) {
     let statements = [];
     while (i < words.length) {
         let nextStatement = words[i];
-        if (nextStatement == 'wear') {
+        if (nextStatement == 'wear' || nextStatement == "whose" || nextStatement == "which") {
             nextStatement = 'where';
         }
         // start rank
@@ -1183,9 +1201,9 @@ function getStatements(statement) {
         statements.push(nextStatement);
     }
 
-    alert(statements.length + " statements");
+    // alert(statements.length + " statements");
     for (let s of statements) {
-        alert(s);
+        // alert(s);
     }
 
     return statements;
@@ -1227,7 +1245,7 @@ audio_recorder.onclick = function() {
             //document.getElementById("status").innerHTML = "end";
             started = false;
             SW.stop();
-            alert("on end'");
+            // alert("on end'");
             // set_aloha_status(false);
             //started = true;
             //document.getElementById("status").innerHTML = "start";
@@ -1240,7 +1258,10 @@ audio_recorder.onclick = function() {
             }
             else{
                 if(!b_manually_stop){
-                recognition.start();
+                    setTimeout(function () {
+                        recognition.start();
+                        started = true;
+                    }, 1000);
                 }
                 else{
                     b_manually_stop = false;
@@ -1279,10 +1300,11 @@ audio_recorder.onclick = function() {
             // update_comment(final_transcript, "just dummy comment...");
             // voice_comment("just dummy comment");
 
-            alert(final_transcript);
+            // alert(final_transcript);
+            // console.log(final_transcript);
 
             // TODO navigate
-            // navigate_to(final_transcript);
+            navigate_to(final_transcript);
             if (final_transcript !== 'aloha'){
                 set_aloha_status(false);
             }
@@ -1309,18 +1331,27 @@ audio_recorder.onclick = function() {
                 }
             } else {
                 if (workMode == "search") {
-                    if (final_transcript.trim().startsWith("stop search")) {
+                    if (final_transcript.trim().startsWith("bye")) {
                         workMode = "";
                         // alert("end search");
 
                         update_comment(final_transcript, "stop search");
-                        voiceComment = "stop search";
+                        voiceComment = "see you";
+                    } else if(final_transcript.match(/ask.*question/i)){
+
+                        //chrome.tabs.create({ url: 'https://answers.splunk.com/answers/ask.html'});
+                        update_comment(final_transcript, "Hope you could find answers from the Ninja Masters!");
+                        voiceComment = "Hope you could find answers from the Ninja Masters!";
+                        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+                            var tab = tabs[0];
+                            chrome.tabs.create({url: 'https://answers.splunk.com/answers/ask.html'});
+                        });
                     } else {
                         // split statement
                         let statements = getStatements(final_transcript.trim());
                         // execute all statements
                         for (let statement of statements) {
-                            let addResult = splManager.addNewStatement(statement);
+                            let addResult = splManager.addNewStatement(statement, statements.length > 1 ? true : false);
                             if (addResult) {
                                 let spl = splManager.toUrlString();
                                 // spl is legal

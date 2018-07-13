@@ -41,7 +41,7 @@ function guid() {
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
 }
 
-function show_comment_div(height="250px"){
+function show_comment_div(height="200px"){
     const c_div = document.getElementById("comments");
     c_div.style.height = height;
     $("#comments").show(0.5)
